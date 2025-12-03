@@ -55,9 +55,6 @@ jobs:
           script: |
             mkdir -p ~/todoang
             cd ~/todoang
-            curl -fsSL https://raw.githubusercontent.com/MarichkaT123/todoang/main/setup_vps.sh -o setup_vps.sh
-            chmod +x setup_vps.sh
-            ./setup_vps.sh
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/todoang:latest
             docker stop todoang || true
             docker rm todoang || true
