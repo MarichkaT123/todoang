@@ -5,37 +5,43 @@ on:
     branches: [ main ]
 
 jobs:
-
   build:
     runs-on: self-hosted
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          path: kurs-work/angular-16-crud-example
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
+        working-directory: kurs-work/angular-16-crud-example
 
       - name: Install PNPM
         run: npm install -g pnpm@10
+        working-directory: kurs-work/angular-16-crud-example
 
       - name: Install dependencies
         run: pnpm install
+        working-directory: kurs-work/angular-16-crud-example
 
       - name: Build Angular
         run: pnpm run build
+        working-directory: kurs-work/angular-16-crud-example
 
       - name: Run SonarCloud
         uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          projectBaseDir: .
+          projectBaseDir: kurs-work/angular-16-crud-example
 
       - name: Rebuild Docker
         run: |
           docker compose down || true
           docker compose build --no-cache
           docker compose up -d
+        working-directory: kurs-work/angular-16-crud-example
