@@ -38,26 +38,27 @@ jobs:
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/angular-app:latest .
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todoang:latest .
 
       - name: Push Docker image
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/angular-app:latest
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/todoang:latest
 
       - name: Deploy to VPS over SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             mkdir -p ~/todoang
             cd ~/todoang
-            curl -fsSL https://raw.githubusercontent.com/<твій_репозиторій>/main/setup_vps.sh -o setup_vps.sh
+            curl -fsSL https://raw.githubusercontent.com/MarichkaT123/todoang/main/setup_vps.sh -o setup_vps.sh
             chmod +x setup_vps.sh
             ./setup_vps.sh
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/angular-app:latest
-            docker stop angular-app || true
-            docker rm angular-app || true
-            docker run -d --name angular-app -p 4200:80 ${{ secrets.DOCKERHUB_USERNAME }}/angular-app:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/todoang:latest
+            docker stop todoang || true
+            docker rm todoang || true
+            docker run -d --name todoang -p 4200:80 ${{ secrets.DOCKERHUB_USERNAME }}/todoang:latest
