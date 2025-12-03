@@ -1,46 +1,63 @@
-name: CI/CD
+name: CI/CD Angular App
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  build:
-    runs-on: self-hosted
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          path: kurs-work/angular-16-crud-example
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Install PNPM
+      - name: Install pnpm
         run: npm install -g pnpm@10
-        working-directory: kurs-work/angular-16-crud-example
 
       - name: Install dependencies
         run: pnpm install
-        working-directory: kurs-work/angular-16-crud-example
 
-      - name: Build Angular
+      - name: Build Angular app
         run: pnpm run build
-        working-directory: kurs-work/angular-16-crud-example
 
-      - name: Run SonarCloud
-        run: |
-          echo "Запускаємо SonarCloud"
-          # Використовуємо команду SonarCloud CLI через cd
-          cd kurs-work/angular-16-crud-example
-          sonar-scanner -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-        
-      - name: Rebuild Docker
-        run: |
-          cd kurs-work/angular-16-crud-example
-          docker compose down || true
-          docker compose build --no-cache
-          docker compose up -d
+      - name: Run SonarCloud analysis
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/angular-app:latest .
+
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/angular-app:latest
+
+      - name: Deploy to VPS over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            mkdir -p ~/todoang
+            cd ~/todoang
+            curl -fsSL https://raw.githubusercontent.com/<твій_репозиторій>/main/setup_vps.sh -o setup_vps.sh
+            chmod +x setup_vps.sh
+            ./setup_vps.sh
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/angular-app:latest
+            docker stop angular-app || true
+            docker rm angular-app || true
+            docker run -d --name angular-app -p 4200:80 ${{ secrets.DOCKERHUB_USERNAME }}/angular-app:latest
