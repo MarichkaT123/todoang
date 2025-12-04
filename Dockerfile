@@ -13,7 +13,7 @@ RUN pnpm run build
 # Stage 2: Nginx server
 FROM nginx:stable
 
-# Видаляємо дефолтний конфіг
+# Видаляємо дефолтний конфіг nginx
 RUN rm /etc/nginx/conf.d/default.conf
 
 # Копіюємо наш кастомний nginx.conf
